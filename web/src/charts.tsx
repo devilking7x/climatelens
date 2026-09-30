@@ -10,10 +10,19 @@ interface Props {
   labels: string[];
   height?: number;
   unit?: string;
+  noDataLabel?: string;
+  chartLabel?: string;
 }
 
 /** Minimal dependency-free SVG line chart. */
-export default function LineChart({ series, labels, height = 180, unit = "°C" }: Props) {
+export default function LineChart({
+  series,
+  labels,
+  height = 180,
+  unit = "°C",
+  noDataLabel = "No data",
+  chartLabel = "temperature chart",
+}: Props) {
   const W = 640;
   const H = height;
   const padL = 44;
@@ -22,7 +31,7 @@ export default function LineChart({ series, labels, height = 180, unit = "°C" }
   const padB = 26;
 
   const all = series.flatMap((s) => s.values).filter((v): v is number => v != null);
-  if (!all.length) return <div className="text-sm opacity-60">No data</div>;
+  if (!all.length) return <div className="text-sm opacity-60">{noDataLabel}</div>;
   let min = Math.min(...all);
   let max = Math.max(...all);
   if (min === max) { min -= 1; max += 1; }
@@ -43,7 +52,7 @@ export default function LineChart({ series, labels, height = 180, unit = "°C" }
   const labelEvery = Math.max(1, Math.ceil(n / 8));
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="temperature chart">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={chartLabel}>
       {gridYs.map((g, i) => (
         <g key={i}>
           <line x1={padL} x2={W - padR} y1={g.y} y2={g.y} stroke="rgba(94,234,212,0.12)" strokeWidth={1} />

@@ -5,6 +5,11 @@ forecast, 30 days of observed history with charts, air quality, a plain-language
 "climate verdict", and a tamper-evident SHA-256 fingerprint of the report —
 all from real data, with cited sources. English/Hindi toggle included.
 
+**Highlights:** multi-city side-by-side comparison (up to 3 cities), shareable
+report links (report state is encoded in the URL hash), installable PWA with
+offline app shell, an MCP server exposing the climate tools to AI agents
+(Claude Code etc.), and one-click Render deploy — all with zero API keys.
+
 Built for the **IEEE ClimateChain Global Hackathon** (AI + Blockchain for a
 sustainable tomorrow), track **Climate Data & Environmental Monitoring**
 ("climate data verification platforms · tools for research and insights").
@@ -56,6 +61,29 @@ PORT=8788 pnpm --filter climatelens-server start   # serves API + built UI
 
 No environment variables needed. No API keys. No sign-ups.
 
+### MCP server (for AI agents)
+
+The climate tools are also exposed as an MCP server over stdio — point
+Claude Code (or any MCP client) at it:
+
+```bash
+pnpm --filter climatelens-server mcp
+```
+
+```jsonc
+// .mcp.json (Claude Code)
+{ "mcpServers": { "climatelens": { "command": "pnpm", "args": ["--filter", "climatelens-server", "mcp"] } } }
+```
+
+Tools: `geocode_place` (place name → coordinates), `climate_report`
+(coordinates → full report with verdict + SHA-256 hash).
+
+### Deploy on Render (one click)
+
+`render.yaml` is a Render Blueprint: create a **New → Blueprint** in the
+Render dashboard, point it at this repo, and it builds + deploys the single
+Node process (API + web UI) on the free tier. Health check: `/api/health`.
+
 ## API
 
 | Method | Endpoint | Description |
@@ -68,27 +96,36 @@ No environment variables needed. No API keys. No sign-ups.
 `hotDays` (≥35°C), `trendPer30dC` (fitted change of daily highs across the
 30-day window — deliberately *not* extrapolated to decades).
 
+API hardening: `/api/*` is rate-limited (60 req/min per IP, HTTP 429 beyond
+that), unknown API routes return JSON 404s, and basic security headers are set.
+
 ## Project layout
 
 ```
 server/src/
   index.ts      Express app, routes, validation, static UI serving
+  middleware.ts rate limiting + security headers
+  mcp.ts        MCP server (stdio): geocode_place + climate_report tools
   openmeteo.ts  Open-Meteo clients (12s timeouts, typed)
   verdict.ts    verdict stats + SHA-256 report hash
 web/src/
-  App.tsx       search, report view, verdict rendering
+  App.tsx       search, report view, multi-city compare, share links
   api.ts        typed API client
   charts.tsx    dependency-free SVG line charts
   i18n.ts       English/Hindi strings
+web/public/icons/  PWA icons (192/512 + maskable)
+render.yaml     Render Blueprint (free tier, single process)
 ```
 
 ## Demo script (for the 3–5 min video)
 
 1. Open the app, toggle Hindi → English.
-2. Search "Mumbai", pick it from the dropdown.
+2. Search "Mumbai", pick it from the dropdown (keyboard: ↓/↑ + Enter works).
 3. Scroll: current conditions → 7-day forecast chart → 30-day history →
    air quality + stats → verdict → verification hash → sources.
 4. Show the hash: copy it, re-fetch, show it matches (same data ⇒ same hash).
+5. Click "＋ Compare", add Delhi and Chennai — show the side-by-side view.
+6. Click "Copy share link", open it in a new tab — the report loads directly.
 
 ## License
 

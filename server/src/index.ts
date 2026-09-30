@@ -13,12 +13,15 @@ import {
   history30,
   weatherLabel,
 } from "./openmeteo.js";
+import { rateLimit, securityHeaders } from "./middleware.js";
 import { computeVerdict, reportHash } from "./verdict.js";
 
 const app = express();
 app.set("trust proxy", 1);
+app.use(securityHeaders);
 app.use(cors());
 app.use(express.json({ limit: "64kb" }));
+app.use("/api/", rateLimit);
 
 const SOURCES = [
   { name: "Open-Meteo Geocoding API", url: "https://open-meteo.com/en/docs/geocoding-api" },
@@ -93,6 +96,11 @@ app.get("/api/climate", async (req, res) => {
     // Never invent data: if upstream fails, say so honestly.
     res.status(502).json({ ok: false, error: "climate data unavailable right now — please retry" });
   }
+});
+
+// Unknown /api/* routes get JSON 404s (not the SPA shell).
+app.all("/api/*", (_req, res) => {
+  res.status(404).json({ ok: false, error: "unknown api endpoint" });
 });
 
 // Serve the built web UI when present (single-process demo mode).
